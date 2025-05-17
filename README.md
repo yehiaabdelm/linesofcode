@@ -4,7 +4,7 @@ Show the number of lines of code you've written in each language with a beautifu
 
 ![Lines of Code Widget](./example.png)
 
-For language colors I used linguist's languages.yml https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml.
+For language colors I used linguist's languages.yml https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml
 
 You can run your own instance by cloning this repository and setting up your environment variables. The widget is customizable through query parameters:
 
@@ -28,14 +28,14 @@ npm install
 3. Create a `.env` file with the following variables:
 
 ```env
-PUBLIC_BASE_URL=          
-S3_ACCESS_KEY_ID=        
-S3_SECRET_ACCESS_KEY=    
-S3_ENDPOINT=            
-S3_BUCKET=             
-GITHUB_CLIENT_ID=    
-GITHUB_CLIENT_SECRET=  
-ENCRYPTION_SECRET=    
+PUBLIC_BASE_URL=
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+S3_ENDPOINT=
+S3_BUCKET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+ENCRYPTION_SECRET=
 GITHUB_API_URL=https://api.github.com
 ```
 
