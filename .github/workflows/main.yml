@@ -1,0 +1,169 @@
+name: build-and-deploy
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: cd app && npm install --frozen-lockfile
+
+      - name: Build app
+        run: cd app && npm run build
+        env:
+          PUBLIC_BASE_URL: ${{secrets.PUBLIC_BASE_URL}}
+          ENCRYPTION_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
+
+      - name: Create container file structure
+        run: |
+          mkdir -p \
+            container/dev \
+            container/etc/systemd/system \
+            container/opt/app \
+            container/proc \
+            container/run \
+            container/sys \
+            container/tmp \
+            container/usr/lib \
+            container/var/lib/services/${GITHUB_REPOSITORY##*/} \
+            container/var/tmp
+          touch \
+            container/etc/machine-id \
+            container/etc/resolv.conf \
+            container/usr/lib/os-release
+      - name: Cache chisel
+        id: cache-chisel
+        uses: actions/cache@v4
+        with:
+          path: |
+            container/lib
+            container/lib64
+            container/usr
+          key: chisel-${{ runner.os }}-${{ runner.arch }}
+
+      - if: ${{ steps.cache-chisel.outputs.cache-hit != 'true' }}
+        name: Download chisel
+        run: |
+          curl -fsSL https://github.com/canonical/chisel/releases/download/v0.9.0/chisel_v0.9.0_linux_amd64.tar.gz -O \
+          && tar -xzf chisel_v0.9.0_linux_amd64.tar.gz
+      - if: ${{ steps.cache-chisel.outputs.cache-hit != 'true' }}
+        name: Copy slices into container
+        run: ./chisel cut --release ubuntu-22.04 --root container libstdc++6_libs
+
+      - name: Copy Node.js binary into container
+        run: cp $(which node) container/opt
+
+      - name: Copy app into container
+        run: cp -r app/{build,package.json,package-lock.json} container/opt/app
+
+      - name: Install curl
+        run: sudo apt-get update && sudo apt-get install -y curl
+
+      - name: Copy curl binary into container
+        run: cp $(which curl) container/usr/bin
+
+      - name: Install production dependencies
+        run: cd container/opt/app && npm install --frozen-lockfile --production
+
+      - name: Create .service file for app
+        run: |
+          cat <<-EOF > container/etc/systemd/system/${GITHUB_REPOSITORY##*/}.service
+          [Unit]
+          Description=$GITHUB_REPOSITORY
+          StartLimitBurst=5
+          StartLimitIntervalSec=60
+          [Service]
+          DynamicUser=yes
+          StateDirectory=services/${GITHUB_REPOSITORY##*/}
+          Environment=PORT=5004 SHUTDOWN_TIMEOUT=5
+          Environment=HOME=/opt/app
+          Environment=S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }}
+          Environment=S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }}
+          Environment=S3_ENDPOINT=${{ secrets.S3_ENDPOINT }}
+          Environment=S3_BUCKET=${{ secrets.S3_BUCKET }}
+          Environment=GITHUB_CLIENT_ID=${{ secrets.GH_CLIENT_ID }}
+          Environment=GITHUB_CLIENT_SECRET=${{ secrets.GH_CLIENT_SECRET }}
+          Environment=GITHUB_API_URL=${{ secrets.GH_API_URL }}
+          Environment=ENV=production
+          ExecStart=/opt/node /opt/app/build
+          Restart=on-failure
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+      - name: Compress container
+        run: |
+          mksquashfs \
+            container \
+            "${GITHUB_REPOSITORY##*/}_$(date --utc '+%F.%H%M')".raw \
+            -exit-on-error \
+            -all-root \
+            -quiet
+      - uses: actions/upload-artifact@v4
+        with:
+          name: container
+          path: '*.raw'
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-22.04
+    environment: prod
+    steps:
+      - name: Retrieve container
+        uses: actions/download-artifact@v4
+        with:
+          name: container
+
+      - name: Write SSH keys
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_ed25519
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+      - name: Upload container to server
+        run: |
+          scp "${GITHUB_REPOSITORY##*/}_"*.raw ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:
+      - name: Attach container
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<-'BASH'
+          if ! command -v portablectl &> /dev/null; then
+            echo "### ERROR: portablectl is not installed" >&2 ; exit 10
+          fi
+          shopt -s nullglob
+          declare -r GITHUB_REPOSITORY='${{ github.repository }}'
+          declare -r name="${GITHUB_REPOSITORY##*/}"
+          declare -a images=("${name}"_*.raw)
+          declare -i n=${#images[@]}
+          if (( n == 0 )); then
+            echo "### ERROR: No images were found" >&2 ; exit 10
+          fi
+          if (( n == 1 )); then
+            sudo portablectl attach --profile=trusted --enable --now "./${images[0]}" && exit 0 || {
+              echo "### ERROR: Failed to attach image" >&2 ; exit 10
+            }
+          fi
+          sudo portablectl reattach --profile=trusted --enable --now "./${images[-1]}" || {
+            echo "### ERROR: Failed to reattach image" >&2 ; exit 10
+          }
+          if (( n > 2 )); then
+            for (( i=0; i<n-2; i++ )); do
+              rm "${images[$i]}"
+            done
+          fi
+          BASH
+      - name: Delete .ssh directory
+        run: rm -rf ~/.ssh
