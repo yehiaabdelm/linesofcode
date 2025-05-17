@@ -53,7 +53,7 @@
 			{#each metrics as metric, i}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					class="group relative h-full cursor-pointer transition-all duration-300 hover:brightness-90"
+					class="group relative h-full cursor-pointer transition-all duration-300"
 					class:opacity-30={hovered && hovered !== metric.language}
 					style:width="{metric.percentage}%"
 					style:background-color={metric.color}
