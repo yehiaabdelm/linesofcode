@@ -134,6 +134,13 @@
 				If you find any bugs or have any suggestions, please
 				{@render link('https://github.com/yehiaabdelm/linesofcode/issues', 'open an issue')}
 			</p>
+			<p class="mt-4 block">
+				Disclaimer: the number of lines is an estimate, see
+				{@render link(
+					'https://github.com/yehiaabdelm/linesofcode/blob/0c3228cd37c5579058c9ee87d893753214189126/src/lib/utils/languages.ts#L10',
+					'here'
+				)}
+			</p>
 		</div>
 	{/if}
 </div>
