@@ -35,7 +35,4 @@ const job = schedule.scheduleJob('0 0 * * 0', async function () {
 	}
 });
 
-// Log job registration and next invocation
-console.log('Metrics update job registered. Next run at:', job.nextInvocation());
-
 export const handle: Handle = handleAuth;
