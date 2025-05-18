@@ -105,7 +105,6 @@
 				Delete Account
 			</button>
 		</div>
-		he
 	{:else}
 		<div class="mx-auto">
 			<h1 class="mb-4 text-lg font-bold">Lines of Code</h1>
