@@ -124,7 +124,7 @@
 				title={`Aggregate Lines of Code`}
 			/>
 			<p class="mt-2 mb-3 text-xs text-black opacity-60">
-				Based on data from {data.number_of_users} developers. Refreshed hourly.
+				Based on data from {data.number_of_users} developers. Refreshed every 30 minutes.
 			</p>
 			<p class="mt-3 mb-3">Hint: hover over the graph for a cool effect</p>
 			<p class="mb-2">You can customize the widget using the following query parameters:</p>
