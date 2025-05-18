@@ -84,3 +84,41 @@ export async function updateAllUsersMetrics(): Promise<void> {
 		console.error('Error updating metrics for all users:', error);
 	}
 }
+
+export async function aggregateAllUsersMetrics(): Promise<boolean> {
+	try {
+		const allMetrics = await s3.listObjects<{
+			id: string;
+			user_id: string;
+			metrics: Record<string, number>;
+			updated_at: Date;
+		}>('users', 'metrics.json');
+
+		const aggregateMetrics = {
+			id: 'global',
+			metrics: {
+				total_users: allMetrics.length,
+				total_bytes_by_language: {} as Record<string, number>,
+				users_by_language: {} as Record<string, number>,
+				updated_at: new Date()
+			}
+		};
+
+		for (const userMetrics of allMetrics) {
+			for (const [language, bytes] of Object.entries(userMetrics.metrics)) {
+				aggregateMetrics.metrics.total_bytes_by_language[language] =
+					(aggregateMetrics.metrics.total_bytes_by_language[language] || 0) + bytes;
+
+				aggregateMetrics.metrics.users_by_language[language] =
+					(aggregateMetrics.metrics.users_by_language[language] || 0) + 1;
+			}
+		}
+
+		await s3.put('aggregateMetrics', aggregateMetrics);
+
+		return true;
+	} catch (error) {
+		console.error('Error aggregating metrics:', error);
+		return false;
+	}
+}

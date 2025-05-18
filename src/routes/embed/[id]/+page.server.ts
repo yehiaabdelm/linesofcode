@@ -16,16 +16,19 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		throw error(404, 'Metrics not found');
 	}
 
-	const exclude = parseFloat(url.searchParams.get('exclude') || '0');
+	const exclude = parseInt(url.searchParams.get('exclude') || '0');
 	const metric = (url.searchParams.get('metric') || 'lines') as 'lines' | 'bytes';
 	const limit = parseInt(url.searchParams.get('limit') || '100');
 	const showOther = url.searchParams.get('other') === 'true';
 	const theme: 'light' | 'dark' = (url.searchParams.get('theme') || 'light') as 'light' | 'dark';
 
 	return {
-		metrics: calculateMetrics(languageMetrics.metrics, exclude, metric, limit, showOther),
-		updated_at: languageMetrics.updated_at,
+		metrics: languageMetrics.metrics,
+		exclude,
+		limit,
+		other: showOther,
 		metric,
-		theme
+		theme,
+		updatedAt: languageMetrics.updated_at
 	};
 };

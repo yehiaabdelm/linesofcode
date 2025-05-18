@@ -2,23 +2,29 @@
 	import { formatNumber } from '$lib/utils/languages';
 	import Link from '$lib/icons/Link.svelte';
 	import { PUBLIC_BASE_URL } from '$env/static/public';
+	import { calculateMetrics } from '$lib/utils/languages';
 	let {
-		metric,
-		theme,
+		title,
 		metrics,
+		exclude = 0,
+		limit = 793,
+		other = false,
+		metric = 'lines',
+		theme = 'light',
 		updatedAt
 	}: {
-		metric: 'lines' | 'bytes';
-		theme: 'light' | 'dark';
-		metrics: {
-			language: string;
-			lines: number;
-			percentage: number;
-			color: string;
-		}[];
+		title?: string;
+		metrics: Record<string, number>;
+		exclude?: number;
+		metric?: 'lines' | 'bytes';
+		limit?: number;
+		other?: boolean;
+		theme?: 'light' | 'dark';
 		updatedAt: Date;
 	} = $props();
 	let hovered: string | null = $state(null);
+
+	const data = calculateMetrics(metrics, exclude, metric, limit, other);
 
 	const getOrdinal = (n: number) => {
 		const s = ['th', 'st', 'nd', 'rd'];
@@ -42,15 +48,15 @@
 <div class="font-sans {theme === 'dark' ? 'text-white' : 'text-black'}">
 	<div class="mb-3 flex items-baseline gap-2">
 		<p class="text-md font-semibold">
-			{metric === 'lines' ? 'Lines' : 'Bytes'} of Code
+			{title || (metric === 'lines' ? 'Lines of Code' : 'Bytes of Code')}
 		</p>
 		<span class="text-sm opacity-60">
-			{formatNumber(metrics.reduce((sum, m) => sum + m.lines, 0))}
+			{formatNumber(data.reduce((sum, m) => sum + m.lines, 0))}
 		</span>
 	</div>
 	<div class="relative w-full">
 		<div class="flex h-6 w-full overflow-hidden rounded-lg">
-			{#each metrics as metric, i}
+			{#each data as metric, i}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="group relative h-full cursor-pointer transition-all duration-300"
@@ -69,7 +75,7 @@
 			{/each}
 		</div>
 		<div class="relative flex flex-wrap text-xs {theme === 'dark' ? 'text-white' : 'text-black'}">
-			{#each metrics as metric}
+			{#each data as metric}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="flex cursor-pointer items-center gap-1.5 pt-2 pr-3 transition-opacity duration-300 ease-in-out"

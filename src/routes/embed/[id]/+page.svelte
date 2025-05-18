@@ -7,7 +7,10 @@
 
 <LanguageEmbed
 	metrics={data.metrics}
-	updatedAt={data.updated_at}
+	updatedAt={data.updatedAt}
 	metric={data.metric}
 	theme={data.theme}
+	exclude={data.exclude}
+	limit={data.limit}
+	other={data.other}
 />

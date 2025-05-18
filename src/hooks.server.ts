@@ -1,7 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import * as auth from '$lib/server/auth/session';
 import schedule from 'node-schedule';
-import { updateAllUsersMetrics } from '$lib/server/metrics/update';
+import { updateAllUsersMetrics, aggregateAllUsersMetrics } from '$lib/server/metrics/update';
 
 const handleAuth: Handle = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -25,13 +25,21 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-const job = schedule.scheduleJob('0 0 * * 0', async function () {
-	console.log('Starting weekly metrics update job');
+// Update all users metrics weekly
+schedule.scheduleJob('0 0 * * 0', async function () {
 	try {
 		await updateAllUsersMetrics();
-		console.log('Weekly metrics update completed successfully');
 	} catch (error) {
 		console.error('Weekly metrics update failed:', error);
+	}
+});
+
+// Aggregate all users metrics every 30 minutes
+schedule.scheduleJob('*/30 * * * *', async function () {
+	try {
+		await aggregateAllUsersMetrics();
+	} catch (error) {
+		console.error('Metrics aggregation update failed:', error);
 	}
 });
 

@@ -7,7 +7,7 @@ import {
 	ListObjectsV2Command
 } from '@aws-sdk/client-s3';
 import { z } from 'zod';
-import { UserSchema, SessionSchema, LanguageMetricsSchema } from './schema';
+import { UserSchema, SessionSchema, LanguageMetricsSchema, AggregateMetricsSchema } from './schema';
 
 const s3 = new S3Client({
 	forcePathStyle: false, // Configures to use subdomain/virtual calling format.
@@ -33,6 +33,10 @@ const schemaRegistry = {
 	languageMetrics: {
 		schema: LanguageMetricsSchema,
 		key: ((id: string | number) => `users/${id}/metrics.json`) as KeyFn
+	},
+	aggregateMetrics: {
+		schema: AggregateMetricsSchema,
+		key: (() => `metrics/aggregate.json`) as KeyFn
 	}
 };
 
@@ -41,6 +45,7 @@ export async function put<
 		| z.infer<typeof UserSchema>
 		| z.infer<typeof SessionSchema>
 		| z.infer<typeof LanguageMetricsSchema>
+		| z.infer<typeof AggregateMetricsSchema>
 >(schemaName: keyof typeof schemaRegistry, data: T): Promise<void> {
 	const { schema, key } = schemaRegistry[schemaName];
 	schema.parse(data); // Validate
@@ -61,6 +66,7 @@ export async function get<
 		| z.infer<typeof UserSchema>
 		| z.infer<typeof SessionSchema>
 		| z.infer<typeof LanguageMetricsSchema>
+		| z.infer<typeof AggregateMetricsSchema>
 >(schemaName: keyof typeof schemaRegistry, id: string | number): Promise<T | null> {
 	const registry = schemaRegistry[schemaName];
 	const path = registry.key(id as any);

@@ -1,12 +1,17 @@
 import type { PageServerLoad } from './$types';
 import { calculateMetrics } from '$lib/utils/languages';
-import type { LanguageMetrics } from '$lib/server/db/schema';
+import type { AggregateMetrics, LanguageMetrics } from '$lib/server/db/schema';
 import * as s3 from '$lib/server/db/s3';
 
 export const load: PageServerLoad = async ({ locals, fetch, url }) => {
 	const user = locals.user;
 	if (!user) {
-		return {};
+		const aggregateMetrics = await s3.get<AggregateMetrics>('aggregateMetrics', 'global');
+		return {
+			metrics: aggregateMetrics?.metrics.total_bytes_by_language || {},
+			number_of_users: aggregateMetrics?.metrics.total_users || 0,
+			updatedAt: aggregateMetrics?.metrics.updated_at || new Date()
+		};
 	}
 
 	let languageMetrics = await s3.get<LanguageMetrics>('languageMetrics', user.id);
@@ -18,17 +23,9 @@ export const load: PageServerLoad = async ({ locals, fetch, url }) => {
 		};
 	}
 
-	const exclude = parseInt(url.searchParams.get('exclude') || '0');
-	const metric = (url.searchParams.get('metric') || 'lines') as 'lines' | 'bytes';
-	const limit = parseInt(url.searchParams.get('limit') || '100');
-	const showOther = url.searchParams.get('other') === 'true';
-
 	return {
-		metrics: {
-			data: calculateMetrics(languageMetrics.metrics, exclude, metric, limit, showOther),
-			updated_at: languageMetrics.updated_at
-		},
-		metric,
+		metrics: languageMetrics.metrics,
+		updatedAt: languageMetrics.updated_at,
 		user
 	};
 };

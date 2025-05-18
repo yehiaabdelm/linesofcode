@@ -21,6 +21,17 @@ export const LanguageMetricsSchema = z.object({
 	updated_at: z.coerce.date()
 });
 
+export const AggregateMetricsSchema = z.object({
+	id: z.string(),
+	metrics: z.object({
+		total_users: z.number(),
+		total_bytes_by_language: z.record(z.string(), z.number()),
+		users_by_language: z.record(z.string(), z.number()),
+		updated_at: z.coerce.date()
+	})
+});
+
 export type User = z.infer<typeof UserSchema>;
 export type Session = z.infer<typeof SessionSchema>;
 export type LanguageMetrics = z.infer<typeof LanguageMetricsSchema>;
+export type AggregateMetrics = z.infer<typeof AggregateMetricsSchema>;

@@ -43,9 +43,9 @@
 		<h1 class="mb-4 text-lg font-semibold">Welcome, {data.user?.username}!</h1>
 		{#if data.metrics}
 			<LanguageEmbed
-				metric={data.metric}
-				metrics={data.metrics.data}
-				updatedAt={data.metrics.updated_at}
+				metric={'lines'}
+				metrics={data.metrics}
+				updatedAt={data.updatedAt}
 				theme={'light'}
 			/>
 		{:else}
@@ -105,6 +105,7 @@
 				Delete Account
 			</button>
 		</div>
+		he
 	{:else}
 		<div class="mx-auto">
 			<h1 class="mb-4 text-lg font-bold">Lines of Code</h1>
@@ -113,17 +114,19 @@
 				embeddable widget.
 				{@render link('/login/github', 'Sign up with GitHub')}
 			</p>
-			<iframe
-				src="{PUBLIC_BASE_URL}/embed/63256088?metric=lines&other=true&limit=9"
-				width="100%"
-				frameborder="0"
-				title="Language statistics visualization"
-				bind:this={iframe}
-				onload={() => {
-					iframe.height = String(iframe.contentWindow?.document.body.scrollHeight);
-				}}
-			></iframe>
-			<p class="mt-5 mb-3">Hint: hover over the graph for a cool effect</p>
+			<LanguageEmbed
+				metric={'lines'}
+				metrics={data.metrics}
+				limit={15}
+				other={false}
+				updatedAt={data.updatedAt}
+				theme={'light'}
+				title={`Aggregate Lines of Code`}
+			/>
+			<p class="mt-2 mb-3 text-xs text-black opacity-60">
+				Based on data from {data.number_of_users} developers. Refreshed hourly.
+			</p>
+			<p class="mt-3 mb-3">Hint: hover over the graph for a cool effect</p>
 			<p class="mb-2">You can customize the widget using the following query parameters:</p>
 			{@render queryParams()}
 			<p class="mt-4 block">
