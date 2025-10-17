@@ -1,10 +1,17 @@
-import YAML from "yaml";
+import YAML from 'yaml';
 
-const url = "https://raw.githubusercontent.com/github/linguist/master/lib/linguist/languages.yml";
+const url = 'https://raw.githubusercontent.com/github/linguist/master/lib/linguist/languages.yml';
 
-const ymlText = await fetch(url).then((r) => r.text());
-const languages = YAML.parse(ymlText);
+let languages: { [key: string]: any } = {};
 
+(async () => {
+	try {
+		const ymlText = await fetch(url).then((r) => r.text());
+		languages = YAML.parse(ymlText);
+	} catch (err) {
+		console.error('Failed to load languages.yml:', err);
+	}
+})();
 
 interface LanguageEntry {
 	language: string;
