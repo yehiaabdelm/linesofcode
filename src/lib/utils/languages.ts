@@ -1,17 +1,6 @@
-import YAML from 'yaml';
+import rawLanguages from './languages.json';
 
-const url = 'https://raw.githubusercontent.com/github/linguist/master/lib/linguist/languages.yml';
-
-let languages: { [key: string]: any } = {};
-
-(async () => {
-	try {
-		const ymlText = await fetch(url).then((r) => r.text());
-		languages = YAML.parse(ymlText);
-	} catch (err) {
-		console.error('Failed to load languages.yml:', err);
-	}
-})();
+const languages = rawLanguages as Record<string, { type?: string; color?: string }>;
 
 interface LanguageEntry {
 	language: string;
@@ -56,8 +45,8 @@ export function calculateMetrics(
 ) {
 	const convertedMetrics = Object.entries(metrics).reduce(
 		(acc, [language, value]) => {
-			acc[language] =
-				metric === 'lines' ? getLinesOfCode(languages[language]['type'], value) : value;
+			const langType = languages?.[language]?.type;
+			acc[language] = metric === 'lines' ? getLinesOfCode(langType ?? 'programming', value) : value;
 			return acc;
 		},
 		{} as Record<string, number>
