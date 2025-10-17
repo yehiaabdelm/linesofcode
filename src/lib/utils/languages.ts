@@ -1,4 +1,10 @@
-import languages from '$lib/utils/languages.json';
+import YAML from "yaml";
+
+const url = "https://raw.githubusercontent.com/github/linguist/master/lib/linguist/languages.yml";
+
+const ymlText = await fetch(url).then((r) => r.text());
+const languages = YAML.parse(ymlText);
+
 
 interface LanguageEntry {
 	language: string;

@@ -16,12 +16,15 @@ export const load: PageServerLoad = async ({ locals, fetch, url }) => {
 
 	let languageMetrics = await s3.get<LanguageMetrics>('languageMetrics', user.id);
 
+		console.log('not signed in');
+
 	if (!languageMetrics) {
 		return {
 			metrics: null,
 			user
 		};
 	}
+
 
 	return {
 		metrics: languageMetrics.metrics,
